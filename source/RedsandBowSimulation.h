@@ -131,6 +131,10 @@ namespace Redsand::Bow
 			gatherCarry = trailCarry = 0.f;
 		}
 
+		// Scales the spawn distance (and swirl) of gathering particles around the arrowhead. 1 keeps the original spread.
+		void SetGatherRadius(float value) { gatherRadius = std::isfinite(value) ? std::clamp(value, 0.1f, 2.f) : 1.f; }
+		float GatherRadius() const { return gatherRadius; }
+
 		void SetEnabledKinds(bool gather, bool rings, bool trails)
 		{
 			std::erase_if(particles, [&](const Particle& p) {
@@ -275,14 +279,15 @@ namespace Redsand::Bow
 		std::vector<Particle> particles;
 		std::uint32_t randomState;
 		float gatherCarry = 0.f, trailCarry = 0.f;
+		float gatherRadius = 1.f;
 		TrailStyle style = TrailStyle::Default;
 
 		void AddGather(Vec3 tip, float age)
 		{
 			Particle p;
 			p.kind = Kind::Gather;
-			p.offset = Sphere() * Range(27.f, 65.f);
-			p.tangent = p.offset.Unit().Cross(Sphere()).Unit() * Range(5.2f, 13.f);
+			p.offset = Sphere() * (Range(27.f, 65.f) * gatherRadius);
+			p.tangent = p.offset.Unit().Cross(Sphere()).Unit() * (Range(5.2f, 13.f) * gatherRadius);
 			p.position = tip + p.offset;
 			p.lifetime = Range(1.35f, 2.1f);
 			p.floatTime = Range(0.35f, 0.65f);

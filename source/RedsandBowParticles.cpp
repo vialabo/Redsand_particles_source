@@ -199,6 +199,7 @@ namespace RedsandBowParticles
 			float rendererStartAge = 0.f, rendererBrightness = -1.f;
 			std::uint64_t chargeSequence = 0;
 			bool charging = false, emitting = true, seen = false;
+			bool charged = false;  // gathering stream whose bow is fully drawn (used for the optional charge color)
 			bool rendererWasAttached = false;
 			bool rendererResourcesPending = false;
 			std::chrono::steady_clock::time_point nextRendererDiagnostic;
@@ -580,6 +581,7 @@ namespace RedsandBowParticles
 			stream->actor = actor->GetHandle();
 			stream->tip = point;
 			stream->color = Color(actor, weaponID);
+			stream->charged = false;
 			stream->weaponID = weaponID;
 			stream->simulation.SetStyle(profile == Redsand::Weapons::Profile::Bow ? Redsand::Bow::TrailStyle::VanillaBow :
 				profile == Redsand::Weapons::Profile::Crossbow ? Redsand::Bow::TrailStyle::VanillaCrossbow : Redsand::Bow::TrailStyle::Default);
@@ -590,7 +592,7 @@ namespace RedsandBowParticles
 			return stream;
 		}
 
-		void ObserveCharge(RE::Actor* actor, float density, float deltaTime)
+		void ObserveCharge(RE::Actor* actor, float density, float deltaTime, float gatherRadius)
 		{
 			auto* weapon = EquippedBow(actor);
 			if (!weapon || actor->AsActorState()->GetWeaponState() != RE::WEAPON_STATE::kDrawn || !Allowed(actor)) { return; }
@@ -612,8 +614,11 @@ namespace RedsandBowParticles
 				stream = CreateStream(actor, actor->GetParentCell(), tip, actor->GetFormID(), weapon->GetFormID());
 				if (!stream) { return; }
 				stream->charging = true;
+				stream->simulation.SetGatherRadius(gatherRadius);
 				stream->simulation.BeginGather(tip, density);
 			}
+			stream->simulation.SetGatherRadius(gatherRadius);
+			stream->charged = state.fullyDrawn;
 			stream->tip = tip;
 			stream->chargeSequence = state.DrawSequence();
 			stream->seen = true;
@@ -847,10 +852,10 @@ namespace RedsandBowParticles
 
 		PruneSilentShots();
 		if (display && configuration.bowEnabled && configuration.bowGathering) {
-			if (player) { ObserveCharge(player, density, deltaTime); }
+			if (player) { ObserveCharge(player, density, deltaTime, configuration.bowGatherRadius); }
 			if (auto* processes = RE::ProcessLists::GetSingleton()) {
 				processes->ForEachHighActor([&](RE::Actor* actor) {
-					if (actor != player) { ObserveCharge(actor, density, deltaTime); }
+					if (actor != player) { ObserveCharge(actor, density, deltaTime, configuration.bowGatherRadius); }
 					return RE::BSContainer::ForEachResult::kContinue;
 				});
 			}

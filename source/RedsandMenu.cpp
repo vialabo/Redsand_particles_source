@@ -200,6 +200,27 @@ namespace RedsandMenu
 						Checkbox({ { "Charge gathering", "蓄力聚集" }, "bowGathering" }, config.bowGathering, config,
 							{ "Gather particles around the arrowhead while drawing a bow. Does not apply to crossbows.",
 							  "拉弓蓄力时在箭头附近聚集粒子，不影响弩。" }, description);
+						Slider({ { "Gather radius", "聚集范围" }, "bowGatherRadius" }, config.bowGatherRadius, RedsandSettings::minGatherRadius,
+							RedsandSettings::maxGatherRadius, config,
+							{ "Scale how far from the arrowhead gathering particles start. Lower values keep them tight around the tip; 1 is the original spread.",
+							  "缩放聚集粒子出现时与箭头的距离。数值越小越贴近箭头，1 为原始范围。" }, description);
+						Checkbox({ { "Charge color", "满弦变色" }, "bowChargeColor" }, config.bowChargeColor, config,
+							{ "Recolor the gathering particles once the bow is fully drawn, so you can see when a shot is charged.",
+							  "弓拉满时改变聚集粒子的颜色，便于判断是否蓄满。" }, description);
+						if (menu.ColorEdit3) {
+							if (menu.ColorEdit3(Label{ { "Charged color", "满弦颜色" }, "bowChargeRGB" }.Get(config).c_str(), config.bowChargeRGB.data(), 1 << 5)) {
+								RedsandSettings::Set(config);
+							}
+							if (menu.IsItemDeactivatedAfterEdit && menu.IsItemDeactivatedAfterEdit()) RedsandSettings::FlushPendingSave();
+						} else {
+							const char* chargeChannels[] = { "R###bowChargeR", "G###bowChargeG", "B###bowChargeB" };
+							menu.TextUnformatted(Text{ "Charged color", "满弦颜色" }.Get(config), nullptr);
+							for (unsigned k = 0; k < 3; ++k) {
+								if (menu.SliderFloat(chargeChannels[k], &config.bowChargeRGB[k], 0.f, 1.f, "%.3f", 1 << 4)) RedsandSettings::Set(config);
+							}
+						}
+						Describe({ "Color used for the gathering particles at full draw when Charge color is on.",
+								   "开启满弦变色后，弓拉满时聚集粒子使用的颜色。" }, config, description);
 						Checkbox({ { "Release rings", "发射环" }, "bowRings" }, config.bowRings, config,
 							{ "Create a particle ring when an arrow or crossbow bolt is fired.", "射出箭矢或弩矢时生成粒子环。" }, description);
 						Checkbox({ { "Flight trails", "飞行轨迹" }, "bowTrails" }, config.bowTrails, config,

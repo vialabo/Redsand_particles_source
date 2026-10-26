@@ -59,6 +59,10 @@ namespace RedsandSettings
 			config.swordSize = valid(config.swordSize, maxSize, minSize);
 			config.bowBrightness = valid(config.bowBrightness, maxBrightness);
 			config.bowDensity = valid(config.bowDensity, maxDensity);
+			config.bowGatherRadius = valid(config.bowGatherRadius, maxGatherRadius, minGatherRadius);
+			for (std::size_t k = 0; k < 3; ++k) {
+				config.bowChargeRGB[k] = valid(config.bowChargeRGB[k], 1.f, 0.f, defaultChargeColor[k]);
+			}
 			config.impactBrightness = valid(config.impactBrightness, maxBrightness);
 			config.impactDensity = valid(config.impactDensity, maxDensity);
 			config.impactSize = valid(config.impactSize, maxSize, minSize);
@@ -171,6 +175,11 @@ namespace RedsandSettings
 					else if (key == "gathering") { ReadBool(value, result.bowGathering); }
 					else if (key == "rings") { ReadBool(value, result.bowRings); }
 					else if (key == "trails") { ReadBool(value, result.bowTrails); }
+					else if (key == "gatherradius") { ReadFloat(value, result.bowGatherRadius); }
+					else if (key == "chargecolor") { ReadBool(value, result.bowChargeColor); }
+					else if (key == "charger") { ReadFloat(value, result.bowChargeRGB[0]); }
+					else if (key == "chargeg") { ReadFloat(value, result.bowChargeRGB[1]); }
+					else if (key == "chargeb") { ReadFloat(value, result.bowChargeRGB[2]); }
 				} else if (section == "impactvfx") {
 					if (key == "enabled") { ReadBool(value, result.impactEnabled); }
 					else if (key == "hit") { ReadBool(value, result.impactHit); }
@@ -252,7 +261,14 @@ namespace RedsandSettings
 					<< "Density=" << config.bowDensity << '\n'
 					<< "Gathering=" << config.bowGathering << '\n'
 					<< "Rings=" << config.bowRings << '\n'
-					<< "Trails=" << config.bowTrails << "\n\n"
+					<< "Trails=" << config.bowTrails << '\n'
+					<< "; GatherRadius scales how far from the arrowhead gathering particles start: 0.1..2, 1 is the original spread.\n"
+					<< "; ChargeColor recolors the gathering particles once the bow is fully drawn (ChargeR/G/B 0..1).\n"
+					<< "GatherRadius=" << config.bowGatherRadius << '\n'
+					<< "ChargeColor=" << config.bowChargeColor << '\n'
+					<< "ChargeR=" << config.bowChargeRGB[0] << '\n'
+					<< "ChargeG=" << config.bowChargeRGB[1] << '\n'
+					<< "ChargeB=" << config.bowChargeRGB[2] << "\n\n"
 					<< "; Impact controls are continuous multipliers; density controls newly emitted particles.\n"
 					<< "; Disabled categories restore their original visuals.\n"
 					<< "[ImpactVFX]\nEnabled=" << config.impactEnabled << '\n'

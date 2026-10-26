@@ -147,6 +147,7 @@ struct Stream
 	std::uint64_t chargeSequence = 0;
 	unsigned projectile = 0;
 	bool charging = false, emitting = true, seen = false;
+	bool charged = false;
 	bool rendererWasAttached = false;
 	bool rendererResourcesPending = false;
 };
@@ -570,6 +571,26 @@ void liveColorRestoresInheritedTint()
 	check(PrepareRenderer(fixture.stream) == RendererStatus::Ready && fixture.stream.rendererColor.red == inherited.red, "bow tint did not restore after disabling RGB");
 }
 
+void chargeColorAppliesOnlyToFullyDrawnGathering()
+{
+	Fixture fixture;
+	fixture.Ready();
+	check(PrepareRenderer(fixture.stream) == RendererStatus::Ready, "initial bow renderer unavailable");
+	const auto inherited = fixture.stream.color;
+	auto config = RedsandSettings::Get();
+	config.bowChargeColor = true; config.bowChargeRGB = { .9f, .7f, .2f };
+	RedsandSettings::Set(config);
+	fixture.stream.charging = true; fixture.stream.charged = false;
+	check(PrepareRenderer(fixture.stream) == RendererStatus::Ready && fixture.stream.rendererColor.red == inherited.red, "charge color applied before full draw");
+	fixture.stream.charged = true;
+	check(PrepareRenderer(fixture.stream) == RendererStatus::Ready && fixture.stream.rendererColor.green == .7f, "charge color was not applied at full draw");
+	fixture.stream.charging = false;
+	check(PrepareRenderer(fixture.stream) == RendererStatus::Ready && fixture.stream.rendererColor.red == inherited.red, "charge color leaked onto a non-gathering stream");
+	config.bowChargeColor = false; RedsandSettings::Set(config);
+	fixture.stream.charging = true;
+	check(PrepareRenderer(fixture.stream) == RendererStatus::Ready && fixture.stream.rendererColor.red == inherited.red, "charge color applied while disabled");
+}
+
 int main() try
 {
 	delayedResources();
@@ -581,6 +602,7 @@ int main() try
 	diagnosticRateAndDisabledWork();
 	hiddenEffectRootRecoversOnlyForItsLiveParticles();
 	liveColorRestoresInheritedTint();
+	chargeColorAppliesOnlyToFullyDrawnGathering();
 	std::cout << "PASS: production renderer loading, isolated failure, scene graph replacement and live brightness\n";
 }
 catch (const std::exception& error)

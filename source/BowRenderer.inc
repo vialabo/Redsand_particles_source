@@ -14,6 +14,17 @@ struct RendererDiagnostics
 			return true;
 		}
 
+		// Color a bow stream should render with: the charge color once a gathering stream's bow is fully drawn
+		// (when enabled), otherwise the custom bow color, otherwise the weapon's own color.
+		RE::NiColorA WantedColor(const Stream& stream, const RedsandSettings::Config& config)
+		{
+			if (stream.charging && stream.charged && config.bowChargeColor) {
+				return RE::NiColorA{ config.bowChargeRGB[0], config.bowChargeRGB[1], config.bowChargeRGB[2], stream.color.alpha };
+			}
+			const auto& custom = config.colors[static_cast<unsigned>(RedsandSettings::ColorTarget::Bow)];
+			return custom.custom ? RE::NiColorA{ custom.rgb[0], custom.rgb[1], custom.rgb[2], stream.color.alpha } : stream.color;
+		}
+
 		bool ConfigureRendererMaterial(Stream& stream, RE::NiParticleSystem* system, float brightness)
 		{
 			auto* shader = netimmerse_cast<RE::BSEffectShaderProperty*>(system->GetGeometryRuntimeData().shaderProperty.get());
@@ -23,8 +34,7 @@ struct RendererDiagnostics
 			if (!copy) { return false; }
 			copy->CopyMembers(material);
 			const auto config = RedsandSettings::Get();
-			const auto& custom = config.colors[static_cast<unsigned>(RedsandSettings::ColorTarget::Bow)];
-			const RE::NiColorA color = custom.custom ? RE::NiColorA{ custom.rgb[0], custom.rgb[1], custom.rgb[2], stream.color.alpha } : stream.color;
+			const RE::NiColorA color = WantedColor(stream, config);
 			copy->baseColor = color;
 			const float peak = std::max({ color.red, color.green, color.blue, 0.f });
 			copy->baseColorScale = peak > 0.f ? 2.6f * 5.4f * brightness / peak : 0.f;
@@ -138,8 +148,7 @@ struct RendererDiagnostics
 					if (stream.rendererResourcesPending && diagnostics) { ++rendererDiagnostics.recovered; }
 					stream.rendererResourcesPending = false;
 					const auto config = RedsandSettings::Get();
-					const auto& custom = config.colors[static_cast<unsigned>(RedsandSettings::ColorTarget::Bow)];
-					const RE::NiColorA wanted = custom.custom ? RE::NiColorA{ custom.rgb[0], custom.rgb[1], custom.rgb[2], stream.color.alpha } : stream.color;
+					const RE::NiColorA wanted = WantedColor(stream, config);
 					if (stream.rendererBrightness != brightness || stream.rendererColor.red != wanted.red || stream.rendererColor.green != wanted.green || stream.rendererColor.blue != wanted.blue) { ConfigureRendererMaterial(stream, system, brightness); }
 					if (diagnostics) { ReportRendererMaterial(stream, system); }
 					return RendererStatus::Ready;

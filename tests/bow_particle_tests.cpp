@@ -68,6 +68,22 @@ void sustainedCloud()
 	check(cloud.Empty(), "dense cloud did not drain after cancel");
 }
 
+void tightGatherRadius()
+{
+	Simulation tight(124);
+	tight.SetGatherRadius(0.25f);
+	tight.BeginGather({}, 1.f);
+	check(!tight.Particles().empty(), "scaled gather emitted nothing");
+	for (const auto& p : tight.Particles()) {
+		check(p.position.Length() > 4.f && p.position.Length() < 20.f, "gather radius 0.25 did not keep particles near the arrowhead");
+	}
+	Simulation guard(7);
+	guard.SetGatherRadius(0.f);
+	check(guard.GatherRadius() == 0.1f, "gather radius below the minimum was not clamped");
+	guard.SetGatherRadius(std::numeric_limits<float>::quiet_NaN());
+	check(guard.GatherRadius() == 1.f, "invalid gather radius did not fall back to the original spread");
+}
+
 void chargeDetection()
 {
 	constexpr float dt = 1.f / 60.f;
@@ -552,6 +568,7 @@ int main() try
 	}
 	chargeAndCancel();
 	sustainedCloud();
+	tightGatherRadius();
 	chargeDetection();
 	nativeDrawRestartAndDuplicateStarts();
 	cameraSwitchRecovery();

@@ -18,6 +18,9 @@ namespace RedsandSettings
 	inline constexpr float maxCutLength = 20.f;
 	inline constexpr float defaultSlashDistance = 1.f;
     inline constexpr std::array<float, 3> defaultLightningColor{.12f, .58f, 1.f};
+	inline constexpr float minGatherRadius = 0.1f;
+	inline constexpr float maxGatherRadius = 2.0f;
+	inline constexpr std::array<float, 3> defaultChargeColor{ 1.f, .72f, .24f };
 	inline constexpr float impactBrightnessBaseline = 10.f;
 	inline constexpr float impactDensityBaseline = 10.f;
 	inline constexpr float slashDensityBaseline = 10.f;
@@ -67,6 +70,9 @@ namespace RedsandSettings
 		bool bowGathering = true;
 		bool bowRings = true;
 		bool bowTrails = true;
+		float bowGatherRadius = 1.0f;
+		bool bowChargeColor = false;
+		std::array<float, 3> bowChargeRGB = defaultChargeColor;
 		bool impactEnabled = true;
 		bool impactHit = true;
 		bool impactSlash = true;
