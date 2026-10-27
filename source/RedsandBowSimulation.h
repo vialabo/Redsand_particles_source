@@ -126,6 +126,25 @@ namespace Redsand::Bow
 		float Size() const { return radius * (0.35f + 0.65f * std::clamp(1.f - age / lifetime, 0.f, 1.f)); }
 	};
 
+	// Sprite spin and shimmer for star-like particle textures. Each particle starts at its own angle (from its phase),
+	// gathering particles turn faster than trail and ring dust, about half of them turn the other way, and the
+	// brightness flickers gently between 60% and 100%.
+	inline float SparkleAngle(const Particle& p)
+	{
+		const float spin = (p.kind == Kind::Gather ? 1.7f : 0.6f) * (std::fmod(p.phase, 2.f) < 1.f ? 1.f : -1.f);
+		return p.phase + p.age * spin;
+	}
+	inline float SparkleShimmer(const Particle& p) { return 0.8f + 0.2f * std::sin(p.phase * 3.f + p.age * 11.f); }
+
+	// A stable pseudo-random phase from a position, so ring and trail particles get varied sprite angles without
+	// drawing from the simulation's random sequence.
+	inline float HashPhase(Vec3 v)
+	{
+		const float h = std::sin(v.x * 12.9898f + v.y * 78.233f + v.z * 37.719f) * 43758.5453f;
+		const float f = h - std::floor(h);
+		return std::isfinite(f) ? f * 6.283185307f : 0.f;
+	}
+
 	class Simulation
 	{
 	public:
@@ -225,6 +244,7 @@ namespace Redsand::Bow
 				p.velocity = (radial * Range(177.45f, 213.85f) + forward * Range(100.f, 140.f)) * strength;
 				p.lifetime = Range(1.1f, 1.5f);
 				p.radius = Range(1.1f, 1.95f);
+				p.phase = HashPhase(p.position);
 				particles.push_back(p);
 			}
 		}
@@ -263,6 +283,7 @@ namespace Redsand::Bow
 					p.lifetime = Range(2.3f, maxLifetime);
 					p.radius = Range(0.65f, 1.25f);
 				}
+				p.phase = HashPhase(p.position);
 				Step(p, static_cast<float>(std::min(static_cast<double>(dt) * (1.f - t) + elapsedAfter,
 					static_cast<double>(std::numeric_limits<float>::max()))), {});
 				if (p.age < p.lifetime) { particles.push_back(p); }

@@ -226,6 +226,9 @@ namespace RedsandMenu
 						ColorPicker({ { "Charged color", "满弦颜色" }, "bowChargeRGB" }, config.bowChargeRGB, config,
 							{ "Color used for the gathering particles at full draw when Charge color is on.",
 							  "开启满弦变色后，弓拉满时聚集粒子使用的颜色。" }, description);
+						Checkbox({ { "Sparkle motion", "闪烁旋转" }, "bowSparkle" }, config.bowSparkle, config,
+							{ "Give each bow particle its own angle, a slow spin and a gentle shimmer. Suits star shaped particle textures.",
+							  "让每个弓箭粒子拥有各自的角度、缓慢旋转和轻微闪烁，适合星形粒子贴图。" }, description);
 						Checkbox({ { "Charge stages", "蓄力阶段" }, "bowChargeStages" }, config.bowChargeStages, config,
 							{ "With Bow Rapid Combo (Archery 60+, bows), also color its stages past full draw: the short Perfect Shot window, then power shot phases 1 and 2. Needs Charge color.",
 							  "配合 Bow Rapid Combo（箭术 60 以上，弓）为满弦之后的阶段着色：短暂的完美射击窗口，以及强力射击第一、第二阶段。需开启满弦变色。" }, description);

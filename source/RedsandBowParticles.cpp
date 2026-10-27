@@ -488,7 +488,7 @@ namespace RedsandBowParticles
 				frame.rootFade, fade ? fade->currentFade : -1.f, frame.rootFadeAmount, fmt::ptr(shaderFade), shaderFade ? shaderFade->currentFade : -1.f);
 		}
 
-		bool Render(Stream& stream, float brightness, bool diagnostics)
+		bool Render(Stream& stream, float brightness, bool diagnostics, bool sparkle)
 		{
 			const auto renderer = PrepareRenderer(stream, brightness, diagnostics);
 			if (renderer != RendererStatus::Ready) { return renderer == RendererStatus::Pending; }
@@ -506,10 +506,10 @@ namespace RedsandBowParticles
 				const auto& p = particles[i];
 				const auto position = inverse * ToNi(p.position);
 				vertices.positions[i] = position;
-				vertices.color[i] = RE::NiColorA{ 1.f, 1.f, 1.f, p.Alpha() };
+				vertices.color[i] = RE::NiColorA{ 1.f, 1.f, 1.f, sparkle ? p.Alpha() * Redsand::Bow::SparkleShimmer(p) : p.Alpha() };
 				vertices.radii[i] = p.Size() / system->world.scale;
 				vertices.sizes[i] = 1.f;
-				if (vertices.rotationAngles) { vertices.rotationAngles[i] = 0.f; }
+				if (vertices.rotationAngles) { vertices.rotationAngles[i] = sparkle ? Redsand::Bow::SparkleAngle(p) : 0.f; }
 				if (vertices.rotationAxes) { vertices.rotationAxes[i] = { 0.f, 0.f, 1.f }; }
 				if (vertices.rotations) { vertices.rotations[i] = RE::NiQuaternion{ 1.f, 0.f, 0.f, 0.f }; }
 				if (vertices.textureIndices) { vertices.textureIndices[i] = 0; }
@@ -901,7 +901,8 @@ namespace RedsandBowParticles
 		}
 		std::erase_if(streams, [&](auto& stream) {
 			const bool finished = StreamFinished(*stream);
-			if (finished || !Render(*stream, configuration.bowBrightness, configuration.diagnostics)) {
+			const bool sparkle = configuration.bowSparkle && stream->simulation.Style() == Redsand::Bow::TrailStyle::VanillaBow;
+			if (finished || !Render(*stream, configuration.bowBrightness, configuration.diagnostics, sparkle)) {
 				if (!finished) { RecoverableStreamLoss(*stream); }
 				else { Redsand::Bow::ForgetRendererLease(shots, *stream); }
 				stream->Retire();

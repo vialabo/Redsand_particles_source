@@ -84,6 +84,33 @@ void tightGatherRadius()
 	check(guard.GatherRadius() == 1.f, "invalid gather radius did not fall back to the original spread");
 }
 
+void sparkleSpinAndShimmer()
+{
+	Simulation ring(37);
+	ring.Ring({ 200.f, -100.f, 60.f }, { 0.f, 1.f, 0.f }, 1.f, 1.f);
+	Simulation trail(41);
+	trail.SetStyle(Redsand::Bow::TrailStyle::VanillaBow);
+	trail.Trail({}, { 900.f, 0.f, 0.f }, 0.1f, 1.f);
+	for (const auto* sim : { &ring, &trail }) {
+		check(sim->Particles().size() > 20, "sparkle source emitted too few particles");
+		float low = 10.f, high = -10.f;
+		for (const auto& p : sim->Particles()) {
+			check(std::isfinite(p.phase) && p.phase >= 0.f && p.phase < 6.2832f, "particle phase outside one turn");
+			low = std::min(low, p.phase); high = std::max(high, p.phase);
+			const float shimmer = Redsand::Bow::SparkleShimmer(p);
+			check(shimmer >= 0.599f && shimmer <= 1.001f, "sparkle shimmer left its 60% to 100% band");
+			check(std::isfinite(Redsand::Bow::SparkleAngle(p)), "sparkle angle is not finite");
+		}
+		check(high - low > 3.f, "ring and trail particles did not get varied sprite angles");
+	}
+	Redsand::Bow::Particle gather;
+	gather.kind = Redsand::Bow::Kind::Gather;
+	gather.phase = 0.5f;
+	const float start = Redsand::Bow::SparkleAngle(gather);
+	gather.age = 1.f;
+	check(std::abs(Redsand::Bow::SparkleAngle(gather) - start - 1.7f) < 0.001f, "gathering particles did not spin at their own rate");
+}
+
 void chargeDetection()
 {
 	constexpr float dt = 1.f / 60.f;
@@ -569,6 +596,7 @@ int main() try
 	chargeAndCancel();
 	sustainedCloud();
 	tightGatherRadius();
+	sparkleSpinAndShimmer();
 	chargeDetection();
 	nativeDrawRestartAndDuplicateStarts();
 	cameraSwitchRecovery();

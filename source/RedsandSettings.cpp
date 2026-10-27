@@ -183,6 +183,7 @@ namespace RedsandSettings
 					else if (key == "charger") { ReadFloat(value, result.bowChargeRGB[0]); }
 					else if (key == "chargeg") { ReadFloat(value, result.bowChargeRGB[1]); }
 					else if (key == "chargeb") { ReadFloat(value, result.bowChargeRGB[2]); }
+					else if (key == "sparkle") { ReadBool(value, result.bowSparkle); }
 					else if (key == "chargestages") { ReadBool(value, result.bowChargeStages); }
 					else if (key == "perfectr") { ReadFloat(value, result.bowPerfectRGB[0]); }
 					else if (key == "perfectg") { ReadFloat(value, result.bowPerfectRGB[1]); }
@@ -282,6 +283,8 @@ namespace RedsandSettings
 					<< "ChargeR=" << config.bowChargeRGB[0] << '\n'
 					<< "ChargeG=" << config.bowChargeRGB[1] << '\n'
 					<< "ChargeB=" << config.bowChargeRGB[2] << '\n'
+					<< "; Sparkle gives each bow particle its own angle, a slow spin and a gentle shimmer (for star shaped textures).\n"
+					<< "Sparkle=" << config.bowSparkle << '\n'
 					<< "; ChargeStages adds Bow Rapid Combo's stages past full draw (Archery 60+, player, bows): Perfect is the short\n"
 					<< "; Perfect Shot window right at full draw, Power is power shot phase 1 and Power2 is phase 2. Needs ChargeColor.\n"
 					<< "ChargeStages=" << config.bowChargeStages << '\n'

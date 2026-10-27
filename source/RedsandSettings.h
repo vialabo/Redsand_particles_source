@@ -80,6 +80,7 @@ namespace RedsandSettings
 		std::array<float, 3> bowPerfectRGB = defaultPerfectColor;
 		std::array<float, 3> bowPowerRGB = defaultPowerColor;
 		std::array<float, 3> bowPower2RGB = defaultPower2Color;
+		bool bowSparkle = true;
 		bool impactEnabled = true;
 		bool impactHit = true;
 		bool impactSlash = true;
