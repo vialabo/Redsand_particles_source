@@ -28,6 +28,19 @@ namespace Redsand::Bow
 	enum class Kind { Gather, Ring, Trail };
 	enum class TrailStyle { Default, VanillaBow, VanillaCrossbow };
 
+	// How far a gathering bow is charged. Full is the plain full draw; the later stages come from Bow Rapid Combo,
+	// which flags its Perfect Shot window and its two power shot phases with magic effects on the archer while the
+	// bow is held. The color follows whichever stage is live right now, so it always matches what a release would do.
+	enum class ChargeStage : std::uint8_t { None, Full, Perfect, Power, Power2 };
+
+	inline ChargeStage ResolveChargeStage(bool fullyDrawn, bool perfect, bool power, bool power2)
+	{
+		if (power2) { return ChargeStage::Power2; }
+		if (power) { return ChargeStage::Power; }
+		if (perfect) { return ChargeStage::Perfect; }
+		return fullyDrawn ? ChargeStage::Full : ChargeStage::None;
+	}
+
 	struct FlightSegment
 	{
 		Vec3 from, to;

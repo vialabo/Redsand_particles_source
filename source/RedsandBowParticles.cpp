@@ -38,6 +38,9 @@ namespace RedsandBowParticles
 		std::atomic_bool enabled = false;
 		std::atomic_uint64_t generation = 0;
 		std::atomic<RE::FormID> rapidComboWeapon = 0;
+		// Bow Rapid Combo's stage flags while a bow is held: Timing_Start (Perfect Shot window), Timing_Effect "Wind"
+		// (power shot phase 1) and Timing_Effect2 "Red Wind" (power shot phase 2). Null when the mod is not loaded.
+		std::atomic<RE::EffectSetting*> rapidComboPerfect = nullptr, rapidComboPower = nullptr, rapidComboPower2 = nullptr;
 		std::mutex sampleLock;
 		std::atomic_uint64_t eventSequence = 0;
 		std::atomic_bool diagnosticCapture = false;
@@ -199,7 +202,7 @@ namespace RedsandBowParticles
 			float rendererStartAge = 0.f, rendererBrightness = -1.f;
 			std::uint64_t chargeSequence = 0;
 			bool charging = false, emitting = true, seen = false;
-			bool charged = false;  // gathering stream whose bow is fully drawn (used for the optional charge color)
+			Redsand::Bow::ChargeStage chargeStage = Redsand::Bow::ChargeStage::None;  // drives the optional charge colors
 			bool rendererWasAttached = false;
 			bool rendererResourcesPending = false;
 			std::chrono::steady_clock::time_point nextRendererDiagnostic;
@@ -581,7 +584,7 @@ namespace RedsandBowParticles
 			stream->actor = actor->GetHandle();
 			stream->tip = point;
 			stream->color = Color(actor, weaponID);
-			stream->charged = false;
+			stream->chargeStage = Redsand::Bow::ChargeStage::None;
 			stream->weaponID = weaponID;
 			stream->simulation.SetStyle(profile == Redsand::Weapons::Profile::Bow ? Redsand::Bow::TrailStyle::VanillaBow :
 				profile == Redsand::Weapons::Profile::Crossbow ? Redsand::Bow::TrailStyle::VanillaCrossbow : Redsand::Bow::TrailStyle::Default);
@@ -590,6 +593,16 @@ namespace RedsandBowParticles
 			if (!stream->effect) { return nullptr; }
 			if (owned) { streams.push_back(std::move(owned)); }
 			return stream;
+		}
+
+		Redsand::Bow::ChargeStage ChargeStageOf(RE::Actor* actor, bool fullyDrawn)
+		{
+			auto* target = actor->AsMagicTarget();
+			const auto has = [&](const std::atomic<RE::EffectSetting*>& slot) {
+				auto* effect = slot.load(std::memory_order_relaxed);
+				return effect && target && target->HasMagicEffect(effect);
+			};
+			return Redsand::Bow::ResolveChargeStage(fullyDrawn, has(rapidComboPerfect), has(rapidComboPower), has(rapidComboPower2));
 		}
 
 		void ObserveCharge(RE::Actor* actor, float density, float deltaTime, float gatherRadius)
@@ -618,7 +631,7 @@ namespace RedsandBowParticles
 				stream->simulation.BeginGather(tip, density);
 			}
 			stream->simulation.SetGatherRadius(gatherRadius);
-			stream->charged = state.fullyDrawn;
+			stream->chargeStage = ChargeStageOf(actor, state.fullyDrawn);
 			stream->tip = tip;
 			stream->chargeSequence = state.DrawSequence();
 			stream->seen = true;
@@ -771,6 +784,9 @@ namespace RedsandBowParticles
 		chargeStates.clear();
 		shots.clear();
 		rapidComboWeapon.store(0);
+		rapidComboPerfect.store(nullptr);
+		rapidComboPower.store(nullptr);
+		rapidComboPower2.store(nullptr);
 		diagnosticCapture.store(false, std::memory_order_relaxed);
 		motionTrace.Enable(false);
 		captureDiagnostics.calls = captureDiagnostics.captured = captureDiagnostics.missingWeapon = 0;
@@ -784,6 +800,18 @@ namespace RedsandBowParticles
 			if (auto* proxy = RE::TESDataHandler::GetSingleton()->LookupForm<RE::TESObjectWEAP>(0x82F, "BowRapidCombo.esp")) {
 				rapidComboWeapon.store(proxy->GetFormID());
 				RedsandLog::info("Redsand bow particles: Bow Rapid Combo compatibility enabled, Dummy_Bow={:08X}", proxy->GetFormID());
+			}
+			if (auto* handler = RE::TESDataHandler::GetSingleton()) {
+				auto* perfect = handler->LookupForm<RE::EffectSetting>(0x809, "BowRapidCombo.esp");
+				auto* power = handler->LookupForm<RE::EffectSetting>(0x80A, "BowRapidCombo.esp");
+				auto* power2 = handler->LookupForm<RE::EffectSetting>(0x80B, "BowRapidCombo.esp");
+				rapidComboPerfect.store(perfect);
+				rapidComboPower.store(power);
+				rapidComboPower2.store(power2);
+				if (perfect || power || power2) {
+					RedsandLog::info("Redsand bow particles: Bow Rapid Combo charge stages perfect={:08X} power={:08X} power2={:08X}",
+						perfect ? perfect->GetFormID() : 0, power ? power->GetFormID() : 0, power2 ? power2->GetFormID() : 0);
+				}
 			}
 			static ActionSink sink;
 			static bool registered = false;

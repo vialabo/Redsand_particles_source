@@ -147,7 +147,7 @@ struct Stream
 	std::uint64_t chargeSequence = 0;
 	unsigned projectile = 0;
 	bool charging = false, emitting = true, seen = false;
-	bool charged = false;
+	Redsand::Bow::ChargeStage chargeStage = Redsand::Bow::ChargeStage::None;
 	bool rendererWasAttached = false;
 	bool rendererResourcesPending = false;
 };
@@ -573,6 +573,7 @@ void liveColorRestoresInheritedTint()
 
 void chargeColorAppliesOnlyToFullyDrawnGathering()
 {
+	using Redsand::Bow::ChargeStage;
 	Fixture fixture;
 	fixture.Ready();
 	check(PrepareRenderer(fixture.stream) == RendererStatus::Ready, "initial bow renderer unavailable");
@@ -580,15 +581,52 @@ void chargeColorAppliesOnlyToFullyDrawnGathering()
 	auto config = RedsandSettings::Get();
 	config.bowChargeColor = true; config.bowChargeRGB = { .9f, .7f, .2f };
 	RedsandSettings::Set(config);
-	fixture.stream.charging = true; fixture.stream.charged = false;
+	fixture.stream.charging = true; fixture.stream.chargeStage = ChargeStage::None;
 	check(PrepareRenderer(fixture.stream) == RendererStatus::Ready && fixture.stream.rendererColor.red == inherited.red, "charge color applied before full draw");
-	fixture.stream.charged = true;
+	fixture.stream.chargeStage = ChargeStage::Full;
 	check(PrepareRenderer(fixture.stream) == RendererStatus::Ready && fixture.stream.rendererColor.green == .7f, "charge color was not applied at full draw");
 	fixture.stream.charging = false;
 	check(PrepareRenderer(fixture.stream) == RendererStatus::Ready && fixture.stream.rendererColor.red == inherited.red, "charge color leaked onto a non-gathering stream");
 	config.bowChargeColor = false; RedsandSettings::Set(config);
 	fixture.stream.charging = true;
 	check(PrepareRenderer(fixture.stream) == RendererStatus::Ready && fixture.stream.rendererColor.red == inherited.red, "charge color applied while disabled");
+}
+
+void chargeStagesFollowTheLiveStage()
+{
+	using Redsand::Bow::ChargeStage;
+	using Redsand::Bow::ResolveChargeStage;
+	check(ResolveChargeStage(false, false, false, false) == ChargeStage::None, "undrawn bow reported a charge stage");
+	check(ResolveChargeStage(true, false, false, false) == ChargeStage::Full, "full draw was not reported");
+	check(ResolveChargeStage(true, true, false, false) == ChargeStage::Perfect, "Perfect Shot window was not reported");
+	check(ResolveChargeStage(true, false, true, false) == ChargeStage::Power, "power shot phase 1 was not reported");
+	check(ResolveChargeStage(true, false, true, true) == ChargeStage::Power2, "power shot phase 2 did not win over phase 1");
+	check(ResolveChargeStage(false, false, false, true) == ChargeStage::Power2, "a live stage effect was ignored before the draw event");
+
+	Fixture fixture;
+	fixture.Ready();
+	check(PrepareRenderer(fixture.stream) == RendererStatus::Ready, "initial bow renderer unavailable");
+	auto config = RedsandSettings::Get();
+	config.bowChargeColor = true; config.bowChargeStages = true;
+	config.bowChargeRGB = { .9f, .7f, .2f };
+	config.bowPerfectRGB = { 1.f, 1.f, 1.f };
+	config.bowPowerRGB = { 1.f, .4f, .1f };
+	config.bowPower2RGB = { 1.f, .1f, .05f };
+	RedsandSettings::Set(config);
+	fixture.stream.charging = true;
+	fixture.stream.chargeStage = ChargeStage::Perfect;
+	check(PrepareRenderer(fixture.stream) == RendererStatus::Ready && fixture.stream.rendererColor.blue == 1.f, "Perfect Shot color was not applied");
+	fixture.stream.chargeStage = ChargeStage::Power;
+	check(PrepareRenderer(fixture.stream) == RendererStatus::Ready && fixture.stream.rendererColor.green == .4f, "power shot 1 color was not applied");
+	fixture.stream.chargeStage = ChargeStage::Power2;
+	check(PrepareRenderer(fixture.stream) == RendererStatus::Ready && fixture.stream.rendererColor.blue == .05f, "power shot 2 color was not applied");
+	fixture.stream.chargeStage = ChargeStage::Full;
+	check(PrepareRenderer(fixture.stream) == RendererStatus::Ready && fixture.stream.rendererColor.green == .7f, "charged color did not return after a stage ended");
+	config.bowChargeStages = false; RedsandSettings::Set(config);
+	fixture.stream.chargeStage = ChargeStage::Power2;
+	check(PrepareRenderer(fixture.stream) == RendererStatus::Ready && fixture.stream.rendererColor.green == .7f, "stage colors applied while Charge stages is off");
+	config.bowChargeColor = false; config.bowChargeStages = true; RedsandSettings::Set(config);
+	check(PrepareRenderer(fixture.stream) == RendererStatus::Ready && fixture.stream.rendererColor.green != .7f && fixture.stream.rendererColor.blue != .05f, "stage colors applied while Charge color is off");
 }
 
 int main() try
@@ -603,6 +641,7 @@ int main() try
 	hiddenEffectRootRecoversOnlyForItsLiveParticles();
 	liveColorRestoresInheritedTint();
 	chargeColorAppliesOnlyToFullyDrawnGathering();
+	chargeStagesFollowTheLiveStage();
 	std::cout << "PASS: production renderer loading, isolated failure, scene graph replacement and live brightness\n";
 }
 catch (const std::exception& error)

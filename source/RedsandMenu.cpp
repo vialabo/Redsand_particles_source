@@ -121,6 +121,22 @@ namespace RedsandMenu
 				"点击色块选色或输入 RGB 数值，选色后自动启用。" }, config, description);
 		}
 
+		void ColorPicker(Label label, std::array<float, 3>& rgb, RedsandSettings::Config& config, Text help, const char*& description)
+		{
+			if (menu.ColorEdit3) {
+				if (menu.ColorEdit3(label.Get(config).c_str(), rgb.data(), 1 << 5)) { RedsandSettings::Set(config); }
+				if (menu.IsItemDeactivatedAfterEdit && menu.IsItemDeactivatedAfterEdit()) { RedsandSettings::FlushPendingSave(); }
+			} else {
+				menu.TextUnformatted(label.text.Get(config), nullptr);
+				const char* names[] = { "R", "G", "B" };
+				for (unsigned k = 0; k < 3; ++k) {
+					const auto key = std::string(names[k]) + "###" + label.id + names[k];
+					if (menu.SliderFloat(key.c_str(), &rgb[k], 0.f, 1.f, "%.3f", 1 << 4)) { RedsandSettings::Set(config); }
+				}
+			}
+			Describe(help, config, description);
+		}
+
 		bool Fold(Label label, const RedsandSettings::Config& config)
 		{
 			if (menu.CollapsingHeader) { return menu.CollapsingHeader(label.Get(config).c_str(), 0); }
@@ -207,20 +223,19 @@ namespace RedsandMenu
 						Checkbox({ { "Charge color", "满弦变色" }, "bowChargeColor" }, config.bowChargeColor, config,
 							{ "Recolor the gathering particles once the bow is fully drawn, so you can see when a shot is charged.",
 							  "弓拉满时改变聚集粒子的颜色，便于判断是否蓄满。" }, description);
-						if (menu.ColorEdit3) {
-							if (menu.ColorEdit3(Label{ { "Charged color", "满弦颜色" }, "bowChargeRGB" }.Get(config).c_str(), config.bowChargeRGB.data(), 1 << 5)) {
-								RedsandSettings::Set(config);
-							}
-							if (menu.IsItemDeactivatedAfterEdit && menu.IsItemDeactivatedAfterEdit()) RedsandSettings::FlushPendingSave();
-						} else {
-							const char* chargeChannels[] = { "R###bowChargeR", "G###bowChargeG", "B###bowChargeB" };
-							menu.TextUnformatted(Text{ "Charged color", "满弦颜色" }.Get(config), nullptr);
-							for (unsigned k = 0; k < 3; ++k) {
-								if (menu.SliderFloat(chargeChannels[k], &config.bowChargeRGB[k], 0.f, 1.f, "%.3f", 1 << 4)) RedsandSettings::Set(config);
-							}
-						}
-						Describe({ "Color used for the gathering particles at full draw when Charge color is on.",
-								   "开启满弦变色后，弓拉满时聚集粒子使用的颜色。" }, config, description);
+						ColorPicker({ { "Charged color", "满弦颜色" }, "bowChargeRGB" }, config.bowChargeRGB, config,
+							{ "Color used for the gathering particles at full draw when Charge color is on.",
+							  "开启满弦变色后，弓拉满时聚集粒子使用的颜色。" }, description);
+						Checkbox({ { "Charge stages", "蓄力阶段" }, "bowChargeStages" }, config.bowChargeStages, config,
+							{ "With Bow Rapid Combo (Archery 60+, bows), also color its stages past full draw: the short Perfect Shot window, then power shot phases 1 and 2. Needs Charge color.",
+							  "配合 Bow Rapid Combo（箭术 60 以上，弓）为满弦之后的阶段着色：短暂的完美射击窗口，以及强力射击第一、第二阶段。需开启满弦变色。" }, description);
+						ColorPicker({ { "Perfect Shot window", "完美射击窗口" }, "bowPerfectRGB" }, config.bowPerfectRGB, config,
+							{ "Shown for the brief window right at full draw where releasing fires Bow Rapid Combo's Perfect Shot.",
+							  "满弦瞬间的短暂窗口，此时松弦会触发 Bow Rapid Combo 的完美射击。" }, description);
+						ColorPicker({ { "Power shot 1", "强力射击一" }, "bowPowerRGB" }, config.bowPowerRGB, config,
+							{ "Shown while releasing would fire power shot phase 1.", "此时松弦会射出第一阶段强力射击。" }, description);
+						ColorPicker({ { "Power shot 2", "强力射击二" }, "bowPower2RGB" }, config.bowPower2RGB, config,
+							{ "Shown while releasing would fire power shot phase 2.", "此时松弦会射出第二阶段强力射击。" }, description);
 						Checkbox({ { "Release rings", "发射环" }, "bowRings" }, config.bowRings, config,
 							{ "Create a particle ring when an arrow or crossbow bolt is fired.", "射出箭矢或弩矢时生成粒子环。" }, description);
 						Checkbox({ { "Flight trails", "飞行轨迹" }, "bowTrails" }, config.bowTrails, config,

@@ -14,12 +14,20 @@ struct RendererDiagnostics
 			return true;
 		}
 
-		// Color a bow stream should render with: the charge color once a gathering stream's bow is fully drawn
-		// (when enabled), otherwise the custom bow color, otherwise the weapon's own color.
+		// Color a bow stream should render with: while a gathering stream is charged (and Charge color is on) the color of
+		// its current charge stage, otherwise the custom bow color, otherwise the weapon's own color. With Charge stages
+		// off every stage past full draw uses the plain charged color.
 		RE::NiColorA WantedColor(const Stream& stream, const RedsandSettings::Config& config)
 		{
-			if (stream.charging && stream.charged && config.bowChargeColor) {
-				return RE::NiColorA{ config.bowChargeRGB[0], config.bowChargeRGB[1], config.bowChargeRGB[2], stream.color.alpha };
+			using Redsand::Bow::ChargeStage;
+			if (stream.charging && stream.chargeStage != ChargeStage::None && config.bowChargeColor) {
+				const auto* rgb = &config.bowChargeRGB;
+				if (config.bowChargeStages) {
+					if (stream.chargeStage == ChargeStage::Perfect) { rgb = &config.bowPerfectRGB; }
+					else if (stream.chargeStage == ChargeStage::Power) { rgb = &config.bowPowerRGB; }
+					else if (stream.chargeStage == ChargeStage::Power2) { rgb = &config.bowPower2RGB; }
+				}
+				return RE::NiColorA{ (*rgb)[0], (*rgb)[1], (*rgb)[2], stream.color.alpha };
 			}
 			const auto& custom = config.colors[static_cast<unsigned>(RedsandSettings::ColorTarget::Bow)];
 			return custom.custom ? RE::NiColorA{ custom.rgb[0], custom.rgb[1], custom.rgb[2], stream.color.alpha } : stream.color;

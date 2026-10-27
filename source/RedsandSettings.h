@@ -21,6 +21,9 @@ namespace RedsandSettings
 	inline constexpr float minGatherRadius = 0.1f;
 	inline constexpr float maxGatherRadius = 2.0f;
 	inline constexpr std::array<float, 3> defaultChargeColor{ 1.f, .72f, .24f };
+	inline constexpr std::array<float, 3> defaultPerfectColor{ 1.f, 1.f, 1.f };
+	inline constexpr std::array<float, 3> defaultPowerColor{ 1.f, .42f, .08f };
+	inline constexpr std::array<float, 3> defaultPower2Color{ 1.f, .1f, .06f };
 	inline constexpr float impactBrightnessBaseline = 10.f;
 	inline constexpr float impactDensityBaseline = 10.f;
 	inline constexpr float slashDensityBaseline = 10.f;
@@ -73,6 +76,10 @@ namespace RedsandSettings
 		float bowGatherRadius = 1.0f;
 		bool bowChargeColor = false;
 		std::array<float, 3> bowChargeRGB = defaultChargeColor;
+		bool bowChargeStages = true;
+		std::array<float, 3> bowPerfectRGB = defaultPerfectColor;
+		std::array<float, 3> bowPowerRGB = defaultPowerColor;
+		std::array<float, 3> bowPower2RGB = defaultPower2Color;
 		bool impactEnabled = true;
 		bool impactHit = true;
 		bool impactSlash = true;
